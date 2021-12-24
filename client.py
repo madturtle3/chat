@@ -13,18 +13,20 @@ client = Client(host=hostname if hostname != '' else "",
 username=username if username != "" else f"Guest#{random.randint(1,PORT)}")
 client.send('Intro')
 echo = lambda msg: print(msg, end="", flush=True)
-row = 6
+row = 7
 col = 0
 try:
     term = blessed.Terminal()
     with term.fullscreen():
-        echo(term.move_xy(0, 0) + "Type something..." + term.move_xy(0, 1))
+
         while True:
+            echo(term.move_xy(0, 0) + "Type something..." + term.move_xy(0, 1))
+            echo(term.move_y(6) + term.center("-----Messages:-----") + term.move_xy(0, 1))
             read_recv, _, _ = select.select([client.sock, sys.stdin], [], [])
             for fd in read_recv:
                 if fd == client.sock:
                     username, message = client.recv()
-                    echo(f"{term.move_y(row)}[{username}]: {message}{term.move_xy(0, 1)}")
+                    echo(f"{term.move_y(row)}{message}{term.move_xy(0, 1)}")
                     row += 1
                 elif fd == sys.stdin:
                     client.send(input())
