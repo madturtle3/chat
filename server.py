@@ -35,7 +35,7 @@ def main():
                 username, new_msg = rawrecv(fd)
                 print(new_msg)
                 if new_msg != DISCONNECT: # if message is not empty bytes
-                    sendtoall(f"[{username}]: {new_msg}") # relay message to all other people
+                    sendtoall(f"{username}: {new_msg}") # relay message to all other people
 
                 else: # disconnect sent, close connection
                     inputs.pop(inputs.index(fd))
