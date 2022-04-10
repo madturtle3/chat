@@ -6,8 +6,8 @@ import random
 #disconnect message char
 DISCONNECT = chr(4)
 VERSION = 1
-HEADER_LEN=64
-PORT=12435
+HEADER_LEN=64 # in bits
+PORT=12435 # default port
 class Client:
     def __init__(self, host='localhost', port=12435,
     username:str=f"Guest#{random.randint(1,PORT)}",

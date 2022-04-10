@@ -1,19 +1,27 @@
+#/usr/bin/python3.10
+
 import socket
-import random
 
 # self made socket wrapper lib for proj
 # chat protocol, V2
 # CHANGES: remove username, fix version fixed bug in send function
 # FUTURE NOTES: add custom parameters
+# NOTE: ADDED PARAMETERS WILL BE ADDED INTO THE FRONT OF THE MESSAGE.
+# THE ONLY THINGS THAT WILL GO IN THE HEADER ARE MESSAGE LENGTH AND VERSION.
 
 #disconnect message char
+# CONSTANTS CONTROL PANEL
+# MISC
 DISCONNECT = chr(4)
 VERSION = 2
-HEADER_LEN=64
-PORT=12435
+DEFAULT_PORT=12435
+# SIZES
+VERSION_SIZE = 8
+MESSAGE_LENGTH_SIZE = 4 # length of message size indicator, in the header
+HEADER_LEN = 64
+
 class Client:
-    def __init__(self, host='localhost', port=12435,
-    username:str=f"Guest#{random.randint(1,PORT)}",
+    def __init__(self, host='localhost', port=DEFAULT_PORT,
     create_conn=True, conn:socket.socket=None):
         """pass in ip and addr of destination"""
         if create_conn:
@@ -22,43 +30,49 @@ class Client:
         else:
             self.sock = conn
         # make sure username can fit in header
-        self.username = username[:HEADER_LEN-1]
+
 
     def send(self, msg:str):
         """16 byte header, organized as follows 0 based:
-        len use [ span] meaning
+        HEADER TABLE:
+        len use [span] meaning
+        ----------------------
         1 if disconnect
-        4 bytes 1-5: Length of message
-        16 username 5-16"""
-        version = int(VERSION).to_bytes(1, 'big')
-        msglen = len(msg).to_bytes(4, 'big')
+        12 bytes 1-5: Length of message
+        """
+        version = int(VERSION).to_bytes(VERSION_SIZE, 'big')
+        msglen = len(msg).to_bytes(MESSAGE_LENGTH_SIZE, 'big')
         # check things out
-        headerlen =  len(version + msglen + self.username.encode())
+        header_content_size =  len(version + msglen)
         # fill up whats left with an ETX ascii character and some 0s
-        filler = bytes((HEADER_LEN) - headerlen)
+        filler = bytes((HEADER_LEN) - header_content_size)
 
         # all together now!!!!!!
-        self.sock.send(version + msglen + self.username.encode() + filler + msg.encode())
+        self.sock.send(version + msglen + filler + msg.encode())
 
     def recv(self):
         header = self.sock.recv(HEADER_LEN, socket.MSG_WAITALL)
-        version = chr(header[0])
+        version = chr(header[:VERSION_SIZE])
 
-        msglen = int.from_bytes(header[1:5], 'big')
-        username = header[5:].decode().replace('\x00',"").replace('\x03', "")
+        if version != VERSION:
+            print("Version mismatch.")
+
+        msglen = int.from_bytes(header[VERSION_SIZE:MESSAGE_LENGTH_SIZE+VERSION_SIZE ], 'big')
 
         message = self.sock.recv(msglen, socket.MSG_WAITALL).decode()
 
 
-        return username, message
+        return message
 
 def rawrecv(sock):
     header = sock.recv(HEADER_LEN, socket.MSG_WAITALL)
     version = chr(header[0])
 
+    if version != VERSION:
+        return "Version mismatch."
+
     msglen = int.from_bytes(header[1:5], 'big')
-    username = header[5:].decode().replace('\x00',"").replace('\x03', "")
 
     message = sock.recv(msglen, socket.MSG_WAITALL).decode()
 
-    return username, message
+    return message
