@@ -13,7 +13,7 @@ import json
 #disconnect message char
 # CONSTANTS CONTROL PANEL
 # MISC
-DISCONNECT = chr(15525)
+DISCONNECT = -1
 VERSION = 3
 DEFAULT_PORT=12435
 # SIZES
@@ -36,43 +36,11 @@ class Client:
         """First VERSION_SIZE of header is version
         The next MESSAGE_LENGTH_SIZE if the message length
         """
-        version = int(VERSION).to_bytes(VERSION_SIZE, 'big')
-        msglen = len(msg).to_bytes(MESSAGE_LENGTH_SIZE, 'big')
-        custom_params = json.dumps(self.custom_parameters, indent=4).encode()
-        custom_params_size = len(custom_params).to_bytes(CUSTOM_PARAMETER_LENGTH, 'big')
-        # check things out
-        header_content_size =  len(version + msglen + custom_params_size)
-        # fill up whats left in the header with 0s
-        # this should theoretically be the same number every time
-        # but in case I change things in the future...
-        filler = bytes((HEADER_LEN) - header_content_size)
-
-        # all together now!!!!!!
-        self.sock.send(version + msglen + custom_params_size +
-        filler + custom_params + msg.encode())
+        raw_send(self.sock, msg, self.custom_parameters)
 
     def recv(self):
-        header = self.sock.recv(HEADER_LEN, socket.MSG_WAITALL)
-
-        data_so_far = 0
-
-        version = int.from_bytes(header[:VERSION_SIZE], 'big')
-        data_so_far += VERSION_SIZE
-
-        msglen = int.from_bytes(header[data_so_far:data_so_far + MESSAGE_LENGTH_SIZE ], 'big')
-        data_so_far += MESSAGE_LENGTH_SIZE
-
-        custom_params_length = int.from_bytes(header[data_so_far: data_so_far + CUSTOM_PARAMETER_LENGTH], 'big')
-        custom_parameters = json.loads(self.sock.recv(custom_params_length, socket.MSG_WAITALL).decode())
-        # ^ parse json and convert to a dictionary
-
-        message = self.sock.recv(msglen, socket.MSG_WAITALL).decode()
-
-
-        if version != VERSION:
-            print("Version mismatch.")
-
-        return message, custom_parameters
+        return raw_recv(self.sock)
+    
 
 class Server(Client):
     """Same as client but it is intended to have *sock.accept() as
@@ -82,9 +50,10 @@ class Server(Client):
         self.addr = addr
         self.custom_parameters = {}
 
-def server_recv(sock):
+def raw_recv(sock):
     header = sock.recv(HEADER_LEN, socket.MSG_WAITALL)
-
+    if not header:
+        return DISCONNECT, {}
     data_so_far = 0
 
     version = int.from_bytes(header[:VERSION_SIZE], 'big')
@@ -105,7 +74,7 @@ def server_recv(sock):
 
     return message, custom_parameters
 
-def server_send(sock, msg, custom_parameters):
+def raw_send(sock, msg, custom_parameters):
     """First VERSION_SIZE of header is version
     The next MESSAGE_LENGTH_SIZE if the message length
     """

@@ -1,7 +1,7 @@
 from socklib1 import *
 import socket
 import select
-
+ 
 inputs = []
 outputs = []
 connections = {}
