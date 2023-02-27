@@ -16,10 +16,10 @@ VERSION_SIZE = 8
 MESSAGE_LENGTH = 16 # length of message size definition in header
 HEADER_LEN = 64
 
-def raw_recv(sock: socket.socket) -> dict:
+def recv(sock):
     header = sock.recv(HEADER_LEN, socket.MSG_WAITALL)
     if not header:
-        return DISCONNECT
+        return DISCONNECT, {}
     data_so_far = 0
 
     version = int.from_bytes(header[:VERSION_SIZE], 'big')
@@ -37,7 +37,7 @@ def raw_recv(sock: socket.socket) -> dict:
 
     return message
 
-def raw_send(sock:socket.socket, message:dict):
+def send(sock, message):
     """First VERSION_SIZE of header is version
     The next MESSAGE_LENGTH_SIZE is the message length
     """

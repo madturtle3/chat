@@ -1,7 +1,5 @@
 import select
 from socklib1 import *
-import time
-import socket
 import sys
 import blessed
 
